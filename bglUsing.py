@@ -13,7 +13,18 @@ IlsSubsection = BGLStructure.sections[2].subsectionData[0]
 print(IlsSubsection.numberOfRecords)
 
 for rec in IlsSubsection.records:
-    print(hex(rec.r_id),rec.size,rec.Icao,rec.latitude,rec.longtitude,rec.altitude)
+    print(hex(rec.r_id),rec.size,rec.Icao,rec.latitude,rec.longtitude,rec.altitude,rec.airportID)
+    
+airports = []
+for subs in BGLStructure.sections[0].subsectionData:
+    for rec in subs.records:
+        airports += [rec]
+    
+a_numb = 0
+for apt in airports:
+    toPrint = '['+str(a_numb) + ']'+' '+ str(apt.getICAO())+' '+str(apt.name)+' '+str(apt.latitude)+' '+str(apt.longtitude)+' '+str(apt.altitude)
+    print(toPrint)
+    a_numb += 1    
 
 """
 

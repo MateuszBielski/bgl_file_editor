@@ -34,6 +34,10 @@ class IlsRecord:
         self.altitude = record_u[6]/1000
         self.altitudeAddress = offOb.val + 0x10
         self.Icao = getIcaoCode(record_u[10])
+        #~ apid = bin(record_u[11])[11:]
+        #~ apid >>= 5
+        self.airportID = getIcaoCode(int(bin(record_u[11])[11:],2) << 4)
+        
         offOb.val += self.size
     """
         

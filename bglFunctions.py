@@ -4,6 +4,7 @@ def LonFromDword(var):
     return var * (360.0 / (3 * 0x10000000)) - 180.0
     
 def getIcaoCode(rawICAO):
+    print(bin(rawICAO))
     value = rawICAO >> 5
     codedChars = []
     
