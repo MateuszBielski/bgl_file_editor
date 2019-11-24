@@ -1,23 +1,31 @@
 import unittest
 import bglTested
 import bglAirportClasses_Functions as apcf
-from copy import copy
+#~ from copy import copy
 
 fileCVX = open("cvx9247.bgl","rb")
 rawData = fileCVX.read()
 fileCVX.close()
 
-fileCVX5828 = open("cvx5828.bgl","rb")
-rawDataCVX5828 = fileCVX5828.read()
-fileCVX5828.close()
-
 fileApx = open("APX92470.bgl","rb")
 rawApxData = fileApx.read()
 fileApx.close()
 
+fileCVX5828 = open("cvx5828.bgl","rb")
+rawDataCVX5828 = fileCVX5828.read()
+fileCVX5828.close()
+
+fileAPX5828 = open("APX58280.bgl","rb")
+rawDataAPX5828 = fileAPX5828.read()
+fileAPX5828.close()
+
+
 subsections = bglTested.getSubsections(rawData)
 BGLStructure = bglTested.parse(rawData)
 BGLStructure_apx = bglTested.parse(rawApxData)
+BGLStructureCVX5828 = bglTested.parse(rawDataCVX5828)
+BGLStructureAPX_5828 = bglTested.parse(rawDataAPX5828)
+
 
 chain = '84 3E 56 37 65 10 74 1D 3C 44 5B 9F 11 C5 D0 05 C9 2C F3 D5 B2 3A 8D 8A 8D 9D 9B 67 8B ED 52 59 B3 BC 0B 36 35 5F 54 25 B5 33 30 6D E2 64 4B EB 36 A1 8F D5 0D'
 chain = chain.split()
@@ -38,7 +46,7 @@ class FromBgl(unittest.TestCase):
     def testAdresToSubsectionData(self):
         self.assertEqual(0x230b47,bglTested.getAdresToSubsectionData(253,subsections))
     def testIfClassExist(self):
-        self.assertTrue(bglTested.parse(rawData).status)
+        self.assertTrue(BGLStructure.status)
         
     def testNumberOfSubsections_2(self):
         self.assertEqual(256,BGLStructure.numberOfSubsections)
@@ -175,14 +183,10 @@ class FromBgl(unittest.TestCase):
     def testSubrecordGiveDataToAirport_Name(self):
         airport = BGLStructure_apx.subsectionData[0].records[0]
         self.assertEqual('Milford Sound',airport.name)
-        """
     def testSelectAirportSegmentClosestTo_cvx(self):
-        BGLStructureCVX5828 = bglTested.parse(rawDataCVX5828)
         airportCVXsegment = BGLStructureCVX5828.subsectionData[177].entities[31].segments[0] #HAAB
-        
         coordinates = (8.9750, 38.7993)
         self.assertEqual(airportCVXsegment,BGLStructureCVX5828.SelectClosestAirportTo(coordinates))
-        """
     def testSelectAirportRecordClosestTo_apx(self):
         airportAPXRecord = BGLStructure_apx.subsectionData[0].records[0]
         coordinates = (-44.68, 167.91)
@@ -204,5 +208,11 @@ class FromBgl(unittest.TestCase):
         self.assertEqual('1105/scenery/cvx9247',pathCVX)
         self.assertEqual('1105/scenery/APX92470',pathAPX)
     """
+    def testNumberOfSections(self):
+        self.assertEqual(1,BGLStructure.numberOfSections)           #cvx9247
+        self.assertEqual(3,BGLStructure_apx.numberOfSections)       #APX92470
+        self.assertEqual(1,BGLStructureCVX5828.numberOfSections)    #cvx5828
+        self.assertEqual(9,BGLStructureAPX_5828.numberOfSections)   #APX58280
+    
 if __name__ == "__main__":
     unittest.main()

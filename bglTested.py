@@ -2,6 +2,7 @@ from struct import unpack,pack
 import bglAirportClasses_Functions
 #~ from copy import copy
 
+posNumberOfSections = 0x14
 posSectionData = 0x38
 posNumberOfSubsections = posSectionData + 0x08
 posStartOfFirstSubsection = posSectionData + 0x0C
@@ -85,7 +86,9 @@ class SubsectionData:
         self.offsetStartEntities = 0x0
         self.numberOfSignatures = 0 
         self.owner_structure = None
-
+class Section:
+    def __init__(self):
+        pass
 
 class BGLStructue:
     def __init__(self):
@@ -96,6 +99,7 @@ class BGLStructue:
         self.subsectionData = []
         self.allSegments = []
         self.SelectClosestAirportTo = None
+        self.numberOfSections = 0
     def SelectClosestSegmentAirportTo(self,coordinates):
         result = None
         yb,xb = coordinates #lat, lon
@@ -288,6 +292,10 @@ def readVectorTerrainDbSubsectionDataFrom(rData,offset,i,bglStructure):#bglStruc
     
 def parse(rawData):
     bglStructure = BGLStructue()
+    bglStructure.numberOfSections = unpack('I',rawData[posNumberOfSections:posNumberOfSections+4])[0]
+    
+    
+    #poniższe dotyczy pierwszej sekcji
     kindOfSection = SectionType(rawData)
     bglStructure.numberOfSubsections = getNumberOfSubsections(rawData)
     
