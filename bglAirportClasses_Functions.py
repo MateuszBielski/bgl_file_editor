@@ -1,9 +1,8 @@
 from struct import unpack,pack
 from bglSectionClass import Section
+from OffsetClass import Offset
+from bglFunctions import LatFromDword,LonFromDword,getIcaoCode
 
-class Offset:
-    def __init__(self,val):
-        self.val = val
 
 class AirportSection(Section):
     def readSubsectionDataFrom(self,rData,offset,i,bglStructure):
@@ -161,15 +160,6 @@ class Approach(AirportSubrecord):
 class ApronEdgeLights(AirportSubrecord):
     def ReadData(self,rData):
         self.as_name = 'ApronEdgeLights'
-
-    
-
-
-    
-def LatFromDword(var):
-    return 90.0 - var * (180.0 / (2 * 0x10000000))
-def LonFromDword(var):
-    return var * (360.0 / (3 * 0x10000000)) - 180.0
     
 def readSubrecord(offOb,rData):
     as_id,as_size = unpack('<HI',rData[offOb.val:offOb.val+6])
@@ -208,27 +198,5 @@ def readSubrecord(offOb,rData):
     offOb.val = endOffset
     return subrecord
 
-def getIcaoCode(rawICAO):
-    value = rawICAO >> 5
-    codedChars = []
-    
-    while (value >= 0):
-        if (value < 38):
-            oneCodedChar = value
-            value = -1
-        else:
-            oneCodedChar = value % 38
-            value = (value - oneCodedChar) / 38
-        codedChars += [int(oneCodedChar)]
-    codedChars.reverse()
-    result = ''
-    for codedChar in codedChars:
-        if codedChar == 0:
-            output =' '
-        elif codedChar > 1 and codedChar < 12:
-            output = chr(ord('0') + codedChar - 2)
-        else:
-            output = chr(ord('A') + codedChar - 12)
-        result += output
-    return result
+
  

@@ -1,6 +1,7 @@
 from struct import unpack,pack
 from bglSectionClass import Section
 from bglAirportClasses_Functions import AirportSection
+from bglIlsClass import IlsSection
 
 posNumberOfSections = 0x14
 posSectionData = 0x38
@@ -20,6 +21,8 @@ class BGLStructue:
         self.allSegments = []
         self.SelectClosestAirportTo = None
         self.numberOfSections = 0
+    def getSectionIds(self):
+        return [sec.kindOfSection for sec in self.sections ]
         
 class VectorTerrainDbSection(Section):
     def readSubsectionDataFrom(self,rData,offset,i,bglStructure):#bglStructure - potrzebne np dla Airport
@@ -178,10 +181,15 @@ def createSection(rData,startOfSectionData,bglStructure):
     #~ sec_id,val_subsection_size,numberOfSubsections,subs_offset,subs_size = 
     startOfFirstSubsection = sectionData_u[3]
     kindOfSection = sectionData_u[0]
+    
     if kindOfSection == 0x65:
         section = VectorTerrainDbSection()
     if kindOfSection == 0x3:
         section  = AirportSection()
+    if kindOfSection == 0x13:
+        section = IlsSection()
+
+    section.kindOfSection = kindOfSection
     section.numberOfSubsections = sectionData_u[2]
     subsectionSize = ((sectionData_u[1] & 0x10000) | 0x40000) >> 0x0E
     if subsectionSize == 16:

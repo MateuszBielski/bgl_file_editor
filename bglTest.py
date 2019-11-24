@@ -1,7 +1,6 @@
 import unittest
 import bglTested
-import bglAirportClasses_Functions as apcf
-#~ from copy import copy
+from bglFunctions import getIcaoCode
 
 fileCVX = open("cvx9247.bgl","rb")
 rawData = fileCVX.read()
@@ -38,7 +37,7 @@ result = [int('0x'+result[i],16) for i in range(len(result))]
 maskRoot = 0xf
 nbPoints = 14
 
-class FromBgl(unittest.TestCase):
+class FromBgl(unittest.TestCase):#
     def testNumberOfSubsections(self):
         self.assertEqual(256,bglTested.getNumberOfSubsections(rawData))
         
@@ -175,7 +174,7 @@ class FromBgl(unittest.TestCase):
         self.assertEqual((3.3,2.84),bglTested.GetMeanCoordinates(coordinates))
     def testGetICAO_1(self):
         upacked = 0x0257C221
-        self.assertEqual('KCLT',apcf.getIcaoCode(upacked))
+        self.assertEqual('KCLT',getIcaoCode(upacked))
     def testGetICAO_2(self):
         airport = BGLStructure_apx.subsectionData[0].records[0]
         self.assertEqual('NZMF',airport.getICAO())
@@ -211,9 +210,15 @@ class FromBgl(unittest.TestCase):
         self.assertEqual(3,BGLStructure_apx.numberOfSections)       #APX92470
         self.assertEqual(1,BGLStructureCVX5828.numberOfSections)    #cvx5828
         self.assertEqual(9,BGLStructureAPX_5828.numberOfSections)   #APX58280
-        
+    def testIdsOfSections(self):
+        sectionExpects = [0x3,0x2c,0x13,0x18,0x22,0x25,0x28,0x2a,0x27]
+        sectionResults = BGLStructureAPX_5828.getSectionIds()
+        self.assertEqual(sectionExpects,sectionResults)
     def testNumberOfSubsectionsInSections(self):
         self.assertEqual(256,BGLStructure.sections[0].numberOfSubsections)
+class ILSAirport(unittest.TestCase):
+    def testIlsTypeSection(self):
+        self.assertEqual(0x13,BGLStructureAPX_5828.sections[2].kindOfSection)
     
 if __name__ == "__main__":
     unittest.main()

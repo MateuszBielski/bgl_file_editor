@@ -1,36 +1,19 @@
 import bglTested
 from struct import unpack
 
-fileName = "cvx5828.bgl"
+fileName = "APX58280.bgl"
 
-fileCVX = open(fileName,"rb")
-rawData = fileCVX.read()
-fileCVX.close()
+fileAPX = open(fileName,"rb")
+rawData = fileAPX.read()
+fileAPX.close()
 
 BGLStructure = bglTested.parse(rawData)
 
-i = 0
+IlsSubsection = BGLStructure.sections[2].subsectionData[0]
+print(IlsSubsection.numberOfRecords)
 
-segmentsWithAltitude = []
-segmentsWithAltitudes = []
-for seg in BGLStructure.allSegments:
-    alt = seg.altitude
-    if not len(alt):
-        continue
-    segmentsWithAltitude += [seg]
-print('number of segments with altitude',len(segmentsWithAltitude))
-    
-for seg in segmentsWithAltitude:
-    entity = seg.owner_entity
-    subsection = entity.owner_subsection
-    print(seg.altitude[0],subsection.nr_id,entity.nr_id)
-    
-# offsety szukanej sygnatury 46...
-# 0x3132  25 subsekcja 2 ent HAMA
-# 0x4597  35  4 ent HADM
-# 0x8ace  65 HADC
-# 0x1c64e 177 ent 17 - tu jest wysokość 2361.895263671875 czyli to jest HAAL 
-
+for rec in IlsSubsection.records:
+    print(hex(rec.r_id),rec.size,rec.Icao,rec.latitude,rec.longtitude,rec.altitude)
 
 """
 
