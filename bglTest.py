@@ -39,7 +39,6 @@ maskRoot = 0xf
 nbPoints = 14
 
 class FromBgl(unittest.TestCase):
-    """
     def testNumberOfSubsections(self):
         self.assertEqual(256,bglTested.getNumberOfSubsections(rawData))
         
@@ -207,12 +206,14 @@ class FromBgl(unittest.TestCase):
         pathAPX = bglTested.CreatePathFromCoordinates(-44.6754369,167.9119677,'apx')
         self.assertEqual('1105/scenery/cvx9247',pathCVX)
         self.assertEqual('1105/scenery/APX92470',pathAPX)
-    """
     def testNumberOfSections(self):
         self.assertEqual(1,BGLStructure.numberOfSections)           #cvx9247
         self.assertEqual(3,BGLStructure_apx.numberOfSections)       #APX92470
         self.assertEqual(1,BGLStructureCVX5828.numberOfSections)    #cvx5828
         self.assertEqual(9,BGLStructureAPX_5828.numberOfSections)   #APX58280
+        
+    def testNumberOfSubsectionsInSections(self):
+        self.assertEqual(256,BGLStructure.sections[0].numberOfSubsections)
     
 if __name__ == "__main__":
     unittest.main()

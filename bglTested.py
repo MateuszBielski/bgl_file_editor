@@ -1,6 +1,6 @@
 from struct import unpack,pack
-import bglAirportClasses_Functions
-#~ from copy import copy
+from bglSectionClass import Section
+from bglAirportClasses_Functions import AirportSection
 
 posNumberOfSections = 0x14
 posSectionData = 0x38
@@ -9,6 +9,113 @@ posStartOfFirstSubsection = posSectionData + 0x0C
 
 class Offset:
     val = 0
+    
+class BGLStructue:
+    def __init__(self):
+        self.status = True
+        self.numberOfSubsections = 0
+        self.subsectionsDataOffsets = []
+        self.subsections = []
+        self.subsectionData = []
+        self.allSegments = []
+        self.SelectClosestAirportTo = None
+        self.numberOfSections = 0
+        
+class VectorTerrainDbSection(Section):
+    def readSubsectionDataFrom(self,rData,offset,i,bglStructure):#bglStructure - potrzebne np dla Airport
+        subsectionData = SubsectionData()
+        subsectionData.owner_structure = bglStructure
+        subsectionData.nr_id = i
+        subsectionData.qmid = unpack('I',rData[offset + 4 : offset + 8])[0]
+        subsectionData.boundingCoordinates = GetBoundingCoordinates(subsectionData.qmid)
+        subsectionData.numberOfEntities = unpack('I',rData[offset + 12 : offset + 12 + 4])[0]
+        dataSize = unpack('I',rData[offset + 16 : offset + 16 + 4])[0]
+        subsectionData.dataSize = dataSize
+        offset += 32
+        subsectionData.startSignature = offset
+        #~ print(str(num),'\t','start signature ',hex(offset))
+        end = offset + dataSize
+        read = 1
+        countGUID = 0
+        signatures = []
+        while read:
+            #~ print(countGUID,'\t',getGUID(rawData[offset: offset + 16]))
+            signat = Signature()
+            signat.address = offset
+            signat.name = getGUID(rData[offset: offset + 16])
+            countGUID += 1
+            offset += 16
+            sizeAdditionalData = unpack('I',rData[offset :offset + 4])[0]
+            offset0 = offset + 4
+            offset = offset0 + sizeAdditionalData
+            dataToRead = bytearray(rData[offset0:offset])
+            for i in range(len(dataToRead)%4):
+                dataToRead.append(0x0)
+            if len(dataToRead)%4 == 0:
+                numbIntegers = int(len(dataToRead)/4)
+                signat.additionalData = unpack('I'*numbIntegers,dataToRead)
+                #~ for i in range(numbIntegers):
+                    #~ print(additionalData[i])
+            else:
+                print('nieprawidłowo addData po sygnaturach, adres:',offset0)
+            if offset >= end:
+                read = 0
+            signatures.append(signat)
+        subsectionData.signatures =  signatures   
+        subsectionData.offsetStartEntities = offset
+        subsectionData.numberOfSignatures = countGUID
+
+        offOb = Offset()
+        offOb.val = offset
+        subsectionData.entities = [Entity(rData,offOb,i,subsectionData) for i in range(subsectionData.numberOfEntities)]
+        return subsectionData
+    def SelectClosestAirportTo(self,coordinates):
+        result = None
+        yb,xb = coordinates #lat, lon
+        d_min = 259200 # przykładowa duża wartość
+        for ap in FindAirportSegments(self):
+            xa,ya = GetMeanCoordinates(ap.CalculateFinalCoordinates())
+            #~ print(xa,ya)
+            d = (xb - xa)**2 + (yb - ya)**2
+            if d < d_min:
+                d_min = d
+                result = ap
+        #~ print('wybrano',GetMeanCoordinates(result.CalculateFinalCoordinates()))
+        #~ print('w porównaniu do',
+        return result
+
+class SubsectionData:
+    def __init__(self):
+        self.nr_id = -1
+        self.qmid = 0
+        self.boundingCoordinates = (0,0,0,0)
+        self.numberOfEntities = 0
+        self.dataSize = 0
+        self.signatures = []
+        self.entities = []
+        self.startSignature = 0x0
+        self.offsetStartEntities = 0x0
+        self.numberOfSignatures = 0 
+        self.owner_structure = None
+        
+class Signature:
+    def __init__(self):
+        self.address = 0x0
+        self.name = 'no signature'
+        self.additionalData = []
+
+class Entity:
+    def __init__(self,rawData,offOb,nr_id,owner_subsection):#,subsectionData
+        self.nr_id = nr_id
+        self.owner_subsection = owner_subsection
+        entity_u = unpack('I'*2+'H',rawData[offOb.val:offOb.val + 10])
+        self.numberOfSegments = entity_u[0]
+        self.segmentsType = entity_u[1]
+        self.numberOfSignaturesOffsets = entity_u[2]
+        offOb.val += 10
+        self.signaturesOffsets = unpack('I'*entity_u[2],rawData[offOb.val:offOb.val + 4*entity_u[2]])
+        offOb.val += 4*entity_u[2]
+        self.segments = [Segment(rawData,offOb,self,j) for j in range(entity_u[0])]
 
 class Segment:
     def __init__(self,rawData,offOb,owner_entity,nr_id):
@@ -37,7 +144,6 @@ class Segment:
             self.numberOfPoints = segment_u[0]
             self.altitudeInfo = segment_u[1]
             self.method = segment_u[2]
-    #~ segment.coordinatesCalculated = CalculateCoordinates(maskRoot,segment.dataBuffer,segmentInfo[0])
     def CalculateRawCoordinates(self):
         if self.method == 1:
             print('method 1')
@@ -54,93 +160,70 @@ class Segment:
             rDataCopy[adr : adr + 4] = pack('f',destValue)
             adr += 4
 
-class Signature:
-    def __init__(self):
-        self.address = 0x0
-        self.name = 'no signature'
-        self.additionalData = []
+def parse(rawData):
+    bglStructure = BGLStructue()
+    bglStructure.numberOfSections = unpack('I',rawData[posNumberOfSections:posNumberOfSections+4])[0]
+    SectionDataOffsets = [posSectionData + i*20 for i in range(bglStructure.numberOfSections)]
+    bglStructure.sections = [createSection(rawData,adr,bglStructure) for adr in SectionDataOffsets]
+    
+    #poniższe dotyczy pierwszej sekcji
+    bglStructure.SelectClosestAirportTo = bglStructure.sections[0].SelectClosestAirportTo
+    bglStructure.numberOfSubsections = bglStructure.sections[0].numberOfSubsections
+    bglStructure.subsectionData = bglStructure.sections[0].subsectionData
+    return bglStructure
 
-class Entity:
-    def __init__(self,rawData,offOb,nr_id,owner_subsection):#,subsectionData
-        self.nr_id = nr_id
-        self.owner_subsection = owner_subsection
-        entity_u = unpack('I'*2+'H',rawData[offOb.val:offOb.val + 10])
-        self.numberOfSegments = entity_u[0]
-        self.segmentsType = entity_u[1]
-        self.numberOfSignaturesOffsets = entity_u[2]
-        offOb.val += 10
-        self.signaturesOffsets = unpack('I'*entity_u[2],rawData[offOb.val:offOb.val + 4*entity_u[2]])
-        offOb.val += 4*entity_u[2]
-        self.segments = [Segment(rawData,offOb,self,j) for j in range(entity_u[0])]
-
-class SubsectionData:
-    def __init__(self):
-        self.nr_id = -1
-        self.qmid = 0
-        self.boundingCoordinates = (0,0,0,0)
-        self.numberOfEntities = 0
-        self.dataSize = 0
-        self.signatures = []
-        self.entities = []
-        self.startSignature = 0x0
-        self.offsetStartEntities = 0x0
-        self.numberOfSignatures = 0 
-        self.owner_structure = None
-class Section:
-    def __init__(self):
-        pass
-
-class BGLStructue:
-    def __init__(self):
-        self.status = True
-        self.numberOfSubsections = 0
-        self.subsectionsDataOffsets = []
-        self.subsections = []
-        self.subsectionData = []
-        self.allSegments = []
-        self.SelectClosestAirportTo = None
-        self.numberOfSections = 0
-    def SelectClosestSegmentAirportTo(self,coordinates):
-        result = None
-        yb,xb = coordinates #lat, lon
-        d_min = 259200 # przykładowa duża wartość
-        for ap in FindAirportSegments(self):
-            xa,ya = GetMeanCoordinates(ap.CalculateFinalCoordinates())
-            print(xa,ya)
-            d = (xb - xa)**2 + (yb - ya)**2
-            if d < d_min:
-                d_min = d
-                result = ap
-        #~ print('wybrano',GetMeanCoordinates(result.CalculateFinalCoordinates()))
-        #~ print('w porównaniu do',
-        return result
-        
-    def SelectClosestRecordAirportTo(self,coordinates):
-        airports = []
-        for subs in self.subsectionData:
-            for rec in subs.records:
-                airports += [rec]
-                
-        result = None
-        xb,yb = coordinates
-        d_min = 259200 # przykładowa duża wartość
-        for ap in airports:
-            xa,ya = ap.latitude,ap.longtitude
-            d = (xb - xa)**2 + (yb - ya)**2
-            if d < d_min:
-                d_min = d
-                result = ap
-        return result
+def createSection(rData,startOfSectionData,bglStructure):
+    section = Section()
+    sectionData_u = unpack('I'*5,rData[startOfSectionData:startOfSectionData+20])
+    #~ sec_id,val_subsection_size,numberOfSubsections,subs_offset,subs_size = 
+    startOfFirstSubsection = sectionData_u[3]
+    kindOfSection = sectionData_u[0]
+    if kindOfSection == 0x65:
+        section = VectorTerrainDbSection()
+    if kindOfSection == 0x3:
+        section  = AirportSection()
+    section.numberOfSubsections = sectionData_u[2]
+    subsectionSize = ((sectionData_u[1] & 0x10000) | 0x40000) >> 0x0E
+    if subsectionSize == 16:
+        subsections = [unpack('I'*4,rData[startOfFirstSubsection + i * 16:startOfFirstSubsection + (i+1) * 16]) for i in range(sectionData_u[2])]
+    section.subsections = subsections
+    section.subsectionsDataOffsets = [subsections[i][2] for i in range(len(subsections))]
+    section.subsectionData = [section.readSubsectionDataFrom(rData,section.subsectionsDataOffsets[i],i,bglStructure) for i in range(sectionData_u[2])]#przenieść subsectionsDataOffsets[i] do funkcji
+    return section       
     
 def getNumberOfSubsections(rawData):
     return unpack('I',rawData[posNumberOfSubsections:posNumberOfSubsections + 4])[0]
     
-def getSubsections(rawData):
+def getSubsections(rawData): #musi być do testów
     numberOfSubsections = getNumberOfSubsections(rawData)
     startOfFirstSubsection = unpack('I',rawData[posStartOfFirstSubsection:posStartOfFirstSubsection + 4])[0]
     return [unpack('I'*4,rawData[startOfFirstSubsection + i * 16:startOfFirstSubsection + (i+1) * 16]) for i in range(numberOfSubsections)]
+
 def getAdresToSubsectionData(numberOfSubsection,subsections):
     return subsections[numberOfSubsection][2]
+
+def processBufferData(segment,rawData,offOb,segmentInfo):
+    maskRoot = 0x0
+    if segmentInfo[2] == 2:
+        maskRoot = unpack('B',rawData[offOb.val:offOb.val + 1])[0]
+        numberOfBytes = (maskRoot*segmentInfo[0]*2 + 7) >> 3
+        offOb.val += 1
+        offsetEnd = offOb.val + numberOfBytes
+    if segmentInfo[2] == 1:
+        segmentData = unpack('I'*2+'i'*2+'I',rawData[offOb.val:offOb.val + 5 * 4])
+        #~ print('First Longitude Data',segmentData[0])
+        #~ print('First Latitude Data',segmentData[1])
+        #~ print('LongitudeData Increment',segmentData[2])
+        #~ print('LatitudeData Increment',segmentData[3])
+        numberOfBytes = segmentData[4]
+        offOb.val += 20
+        offsetEnd = offOb.val + numberOfBytes
+    segment.maskRoot = maskRoot
+    segment.dataBuffer = rawData[offOb.val:offsetEnd]
+    #~ if segmentInfo[2] == 2:
+        #~ segment.coordinatesCalculated = CalculateRawCoordinates(maskRoot,segment.dataBuffer,segmentInfo[0])
+    offOb.val = offsetEnd
+    
     
 def getGUID(bc):
     bc_u = unpack('I'+'H'*2,bc[:8])
@@ -219,99 +302,10 @@ def CalculateRawCoordinates(maskRoot,dataBuffer,nbPoints):
             positionInPair = 0
     return (listOfValues)
 
-def processBufferData(segment,rawData,offOb,segmentInfo):
-    maskRoot = 0x0
-    if segmentInfo[2] == 2:
-        maskRoot = unpack('B',rawData[offOb.val:offOb.val + 1])[0]
-        numberOfBytes = (maskRoot*segmentInfo[0]*2 + 7) >> 3
-        offOb.val += 1
-        offsetEnd = offOb.val + numberOfBytes
-    if segmentInfo[2] == 1:
-        segmentData = unpack('I'*2+'i'*2+'I',rawData[offOb.val:offOb.val + 5 * 4])
-        #~ print('First Longitude Data',segmentData[0])
-        #~ print('First Latitude Data',segmentData[1])
-        #~ print('LongitudeData Increment',segmentData[2])
-        #~ print('LatitudeData Increment',segmentData[3])
-        numberOfBytes = segmentData[4]
-        offOb.val += 20
-        offsetEnd = offOb.val + numberOfBytes
-    segment.maskRoot = maskRoot
-    segment.dataBuffer = rawData[offOb.val:offsetEnd]
-    #~ if segmentInfo[2] == 2:
-        #~ segment.coordinatesCalculated = CalculateRawCoordinates(maskRoot,segment.dataBuffer,segmentInfo[0])
-    offOb.val = offsetEnd
- 
-    
-def readVectorTerrainDbSubsectionDataFrom(rData,offset,i,bglStructure):#bglStructure - potrzebne np dla Airport
-    subsectionData = SubsectionData()
-    subsectionData.owner_structure = bglStructure
-    subsectionData.nr_id = i
-    subsectionData.qmid = unpack('I',rData[offset + 4 : offset + 8])[0]
-    subsectionData.boundingCoordinates = GetBoundingCoordinates(subsectionData.qmid)
-    subsectionData.numberOfEntities = unpack('I',rData[offset + 12 : offset + 12 + 4])[0]
-    dataSize = unpack('I',rData[offset + 16 : offset + 16 + 4])[0]
-    subsectionData.dataSize = dataSize
-    offset += 32
-    subsectionData.startSignature = offset
-    #~ print(str(num),'\t','start signature ',hex(offset))
-    end = offset + dataSize
-    read = 1
-    countGUID = 0
-    signatures = []
-    while read:
-        #~ print(countGUID,'\t',getGUID(rawData[offset: offset + 16]))
-        signat = Signature()
-        signat.address = offset
-        signat.name = getGUID(rData[offset: offset + 16])
-        countGUID += 1
-        offset += 16
-        sizeAdditionalData = unpack('I',rData[offset :offset + 4])[0]
-        offset0 = offset + 4
-        offset = offset0 + sizeAdditionalData
-        dataToRead = bytearray(rData[offset0:offset])
-        for i in range(len(dataToRead)%4):
-            dataToRead.append(0x0)
-        if len(dataToRead)%4 == 0:
-            numbIntegers = int(len(dataToRead)/4)
-            signat.additionalData = unpack('I'*numbIntegers,dataToRead)
-            #~ for i in range(numbIntegers):
-                #~ print(additionalData[i])
-        else:
-            print('nieprawidłowo addData po sygnaturach, adres:',offset0)
-        if offset >= end:
-            read = 0
-        signatures.append(signat)
-    subsectionData.signatures =  signatures   
-    subsectionData.offsetStartEntities = offset
-    subsectionData.numberOfSignatures = countGUID
 
-    offOb = Offset()
-    offOb.val = offset
-    subsectionData.entities = [Entity(rData,offOb,i,subsectionData) for i in range(subsectionData.numberOfEntities)]
-    return subsectionData
+
     
-def parse(rawData):
-    bglStructure = BGLStructue()
-    bglStructure.numberOfSections = unpack('I',rawData[posNumberOfSections:posNumberOfSections+4])[0]
-    
-    
-    #poniższe dotyczy pierwszej sekcji
-    kindOfSection = SectionType(rawData)
-    bglStructure.numberOfSubsections = getNumberOfSubsections(rawData)
-    
-    subsections = getSubsections(rawData)
-    bglStructure.subsections = subsections
-    subsectionsDataOffsets = [subsections[i][2] for i in range(len(subsections))]
-    bglStructure.subsectionsDataOffsets = subsectionsDataOffsets
-    if kindOfSection == 0x65:
-        readSubsectionDataFrom = readVectorTerrainDbSubsectionDataFrom
-        bglStructure.SelectClosestAirportTo = bglStructure.SelectClosestSegmentAirportTo
-    if kindOfSection == 0x3:
-        readSubsectionDataFrom = bglAirportClasses_Functions.readAirportSubsectionDataFrom
-        bglStructure.SelectClosestAirportTo = bglStructure.SelectClosestRecordAirportTo
-    bglStructure.subsectionData = [readSubsectionDataFrom(rawData,subsectionsDataOffsets[i],i,bglStructure) for i in range(bglStructure.numberOfSubsections)]
-    return bglStructure
-    
+
 def AddValueToAltitude(deltaValue,rDataCopy,segment):
     #~ nbAltitudes = len(segment.altitude)
     newAltitudes = [*segment.altitude]
