@@ -9,3 +9,6 @@ class Section:
         pass
     def SelectClosestAirportTo(self,coordinates):
         pass
+        
+    def FindRecordsByAirportIcao(self,icao):
+        pass

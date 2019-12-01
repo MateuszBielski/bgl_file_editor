@@ -16,9 +16,14 @@ for rec in IlsSubsection.records:
     print(hex(rec.r_id),rec.size,rec.Icao,rec.latitude,rec.longtitude,rec.altitude,rec.airportID)
     
 airports = []
+subs_numb = 0
 for subs in BGLStructure.sections[0].subsectionData:
+    rec_numb = 0
     for rec in subs.records:
         airports += [rec]
+        print(subs_numb,rec_numb)
+        rec_numb += 1
+    subs_numb += 1
     
 a_numb = 0
 for apt in airports:

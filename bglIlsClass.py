@@ -14,7 +14,8 @@ class IlsSection(Section):
         return subsectionData
     def SelectClosestAirportTo(self,coordinates):
         pass
-        
+    def FindRecordsByAirportIcao(self,icao):
+        return [rec for subsection in self.subsectionData for rec in subsection.records if rec.airportID == icao]
 
 class SubsectionIlsData:
     def __init__(self):
@@ -36,7 +37,7 @@ class IlsRecord:
         self.Icao = getIcaoCode(record_u[10])
         #~ apid = bin(record_u[11])[11:]
         #~ apid >>= 5
-        self.airportID = getIcaoCode(int(bin(record_u[11])[11:],2) << 4)
+        self.airportID = getIcaoCode(int(bin(record_u[11])[:28],2))#[11:31] << 4
         
         offOb.val += self.size
     """

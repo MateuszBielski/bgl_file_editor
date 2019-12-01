@@ -37,7 +37,7 @@ result = [int('0x'+result[i],16) for i in range(len(result))]
 maskRoot = 0xf
 nbPoints = 14
 
-class FromBgl(unittest.TestCase):#
+class FromBgl():#unittest.TestCase
     def testNumberOfSubsections(self):
         self.assertEqual(256,bglTested.getNumberOfSubsections(rawData))
         
@@ -219,6 +219,16 @@ class FromBgl(unittest.TestCase):#
 class ILSAirport(unittest.TestCase):
     def testIlsTypeSection(self):
         self.assertEqual(0x13,BGLStructureAPX_5828.sections[2].kindOfSection)
-    
+    #~ def testAssignRecordsFromOtherSectionToAirportRecardByIcao(self):
+        #~ airportRecord = BGLStructureAPX_5828.sections[0].subsectionData[3].records[2]
+        #~ AssignRecordsFromOtherSectionToAirportRecardByIcao(airportRecord)
+        #~ result = airportRecord.assignedRecords
+        #~ expect = BGLStructureAPX_5828.sections[2].subsectionData[0].records
+        #~ self.assertEqual(expect,result)
+    def testFindRecordsByAirportIcao(self):
+        result = BGLStructureAPX_5828.sections[2].FindRecordsByAirportIcao('HAAB')
+        expect = BGLStructureAPX_5828.sections[2].subsectionData[0].records
+        self.assertEqual(expect,result)
+        
 if __name__ == "__main__":
     unittest.main()
