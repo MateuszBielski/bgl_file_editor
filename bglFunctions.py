@@ -29,3 +29,11 @@ def getIcaoCode(rawICAO):
     return result
 
 #~ def AssignRecordsFromOtherSectionToAirportRecardByIcao()
+def AssignRecordsFromOtherSectionByIcaoTo(airportRecord):
+    
+    for sec in airportRecord.owner_subsection.owner_structure.sections:
+        foundRecords = sec.FindRecordsByAirportIcao(airportRecord.getICAO())
+        if foundRecords != None:
+            airportRecord.assignedRecords += [*foundRecords]
+    
+    

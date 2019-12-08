@@ -1,6 +1,6 @@
 import unittest
 import bglTested
-from bglFunctions import getIcaoCode
+from bglFunctions import getIcaoCode, AssignRecordsFromOtherSectionByIcaoTo
 
 fileCVX = open("cvx9247.bgl","rb")
 rawData = fileCVX.read()
@@ -219,16 +219,23 @@ class FromBgl():#unittest.TestCase
 class ILSAirport(unittest.TestCase):
     def testIlsTypeSection(self):
         self.assertEqual(0x13,BGLStructureAPX_5828.sections[2].kindOfSection)
-    #~ def testAssignRecordsFromOtherSectionToAirportRecardByIcao(self):
-        #~ airportRecord = BGLStructureAPX_5828.sections[0].subsectionData[3].records[2]
-        #~ AssignRecordsFromOtherSectionToAirportRecardByIcao(airportRecord)
-        #~ result = airportRecord.assignedRecords
-        #~ expect = BGLStructureAPX_5828.sections[2].subsectionData[0].records
-        #~ self.assertEqual(expect,result)
+    def testAssignRecordsFromOtherSectionToAirportRecardByIcao(self):
+        airportRecord = BGLStructureAPX_5828.sections[0].subsectionData[3].records[2]
+        AssignRecordsFromOtherSectionByIcaoTo(airportRecord)
+        result = airportRecord.assignedRecords
+        expect = BGLStructureAPX_5828.sections[2].subsectionData[0].records
+        self.assertEqual(expect,result)
     def testFindRecordsByAirportIcao(self):
         result = BGLStructureAPX_5828.sections[2].FindRecordsByAirportIcao('HAAB')
         expect = BGLStructureAPX_5828.sections[2].subsectionData[0].records
         self.assertEqual(expect,result)
+    def testChangeAltitudeIlsRecordsAssignedToAirportRecord(self):
+        rawDataCopy = bytearray(rawDataAPX5828)
+        airportRecord = BGLStructureAPX_5828.sections[0].subsectionData[3].records[2]
+        airportRecord.setAltitude(2300.1,rawDataCopy)
+        bglStructureCopy = bglTested.parse(rawDataCopy)
+        ilsRecord =  bglStructureCopy.sections[2].subsectionData[0].records[0]
+        self.assertEqual(2300.1,ilsRecord.altitude)
         
 if __name__ == "__main__":
     unittest.main()

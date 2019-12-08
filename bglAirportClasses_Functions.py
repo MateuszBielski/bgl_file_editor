@@ -8,6 +8,7 @@ class AirportSection(Section):
     def readSubsectionDataFrom(self,rData,offset,i,bglStructure):
         offOb = Offset(offset)
         subsectionData = SubsectionAirportData()
+        subsectionData.owner_structure = bglStructure
         subsectionData.nr_id = i
         numberOfRecords = self.subsections[i][1]
         subsectionData.numberOfRecords = numberOfRecords
@@ -31,8 +32,10 @@ class AirportSection(Section):
         return result
 
 class SubsectionAirportData:
-    records = []
-    numberOfRecords = 0
+    def __init__(self):
+        self.records = []
+        self.numberOfRecords = 0
+        self.owner_structure  = None
     
     
 class AirportRecord:
@@ -42,6 +45,7 @@ class AirportRecord:
         self.owner_subsection = owner_subsection
         self.nr_id = i
         self.name = None
+        self.assignedRecords = []
         #~ print('offOb.val',hex(offOb.val))
         record_u = unpack('<HIBBBBBBIIIIIIII',rData[offOb.val:offOb.val+0x2c])# musi być znaczek < bo inaczej nie rozumie i żąda więcej bajtów
         self.ar_id = record_u[0]
