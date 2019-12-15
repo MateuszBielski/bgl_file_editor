@@ -1,5 +1,6 @@
 import bglTested
 from struct import unpack
+from bglFunctions import AssignRecordsFromOtherSectionByIcaoTo
 #~ from copy import copy
 lat = None
 lon = None
@@ -85,8 +86,8 @@ file_APX_Copy.write(raw_APX_Data)
 file_APX_Copy.close()
 
 new_cvx_File = open(file_cvx_Name,"wb")
-#~ new_cvx_File.write(raw_cvx_DataCopy)
+new_cvx_File.write(raw_cvx_DataCopy)
 new_cvx_File.close()
 new_APX_File = open(file_APX_Name,"wb")
-#~ new_APX_File.write(raw_APX_DataCopy)
+new_APX_File.write(raw_APX_DataCopy)
 new_APX_File.close()
