@@ -63,7 +63,8 @@ class VectorTerrainDbSection(Section):
                 print('nieprawidłowo addData po sygnaturach, adres:',offset0)
             if offset >= end:
                 read = 0
-            signatures.append(signat)
+            #~ signatures.append(signat)
+            signatures += [signat]
         subsectionData.signatures =  signatures   
         subsectionData.offsetStartEntities = offset
         subsectionData.numberOfSignatures = countGUID
@@ -327,7 +328,8 @@ def FindAirportSegments(bglStructure):
     for ent in FindAirportEntities(bglStructure):
         for seg in ent.segments:
             if len(seg.altitude):
-                result_segments.append(seg)
+                #~ result_segments.append(seg)
+                result_segments += [seg]
     return result_segments
 
 def FindAirportEntities(bglStructure):
@@ -345,7 +347,7 @@ def FindAirportEntities(bglStructure):
                 for ent in entitiesCopy:
                     for sigOf in ent.signaturesOffsets:
                         if sigOf == adrRelative:
-                            result_entities.append(ent)
+                            result_entities +=[ent]
                             foundEntity = True
                             break
                     if foundEntity:

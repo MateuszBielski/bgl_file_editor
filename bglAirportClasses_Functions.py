@@ -59,8 +59,8 @@ class AirportRecord:
         offOb.val += 0x38
         
         while offOb.val < endOffset:
-            self.subrecords.append(readSubrecord(offOb,rData))
-            #~ pass
+            #~ self.subrecords.append(readSubrecord(offOb,rData))
+            self.subrecords += [readSubrecord(offOb,rData)]
         offOb.val = endOffset
         for subr in self.subrecords:
             subr.GiveDataTo(self)
@@ -72,6 +72,8 @@ class AirportRecord:
             #~ pass
             #~ print(subr.as_name)
             subr.setElevation(newAltitude,rData)
+        for assi_rec in self.assignedRecords:
+            assi_rec.setElevation(newAltitude,rData)
     def getICAO(self):
         return getIcaoCode(self.icaoRaw)
         

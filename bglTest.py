@@ -37,7 +37,7 @@ result = [int('0x'+result[i],16) for i in range(len(result))]
 maskRoot = 0xf
 nbPoints = 14
 
-class FromBgl():#unittest.TestCase
+class FromBgl(unittest.TestCase):#
     def testNumberOfSubsections(self):
         self.assertEqual(256,bglTested.getNumberOfSubsections(rawData))
         
